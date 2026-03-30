@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Big Cat Print Detector</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      text-align: center;
+      padding: 16px;
+      background: #f7f7f7;
+    }
+
+    h1 {
+      font-size: 22px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      margin-top: 16px;
+    }
+
+    input {
+      margin-top: 12px;
+    }
+
+    img {
+      width: 100%;
+      max-width: 320px;
+      border-radius: 10px;
+      margin-top: 12px;
+    }
+
+    #result {
+      font-size: 18px;
+      margin-top: 16px;
+      font-weight: bold;
+    }
+
+    button {
+      margin-top: 12px;
+      padding: 12px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      background: black;
+      color: white;
+      width: 100%;
+      max-width: 300px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🐾 Big Cat Print Detector</h1>
+
+  <div class="card">
+    <input type="file" accept="image/*" capture="environment" id="upload">
+    <img id="preview" />
+    <button onclick="analyze()">Analyze Print</button>
+    <div id="result"></div>
+  </div>
+
+  <script>
+    let model;
+
+    async function loadModel() {
+      model = await tf.loadGraphModel(
+        "https://tfhub.dev/google/tfjs-model/imagenet/mobilenet_v2_100_224/classification/5/default/1",
+        { fromTFHub: true }
+      );
+      console.log("Model loaded");
+    }
+
+    loadModel();
+
+    const upload = document.getElementById("upload");
+    const preview = document.getElementById("preview");
+
+    upload.addEventListener("change", () => {
+      const file = upload.files[0];
+      if (!file) return;
+      preview.src = URL.createObjectURL(file);
+    });
+
+    async function analyze() {
+      const result = document.getElementById("result");
+
+      if (!preview.src) {
+        result.innerText = "Please upload a photo first.";
+        return;
+      }
+
+      result.innerText = "Analyzing...";
+
+      const img = new Image();
+      img.src = preview.src;
+
+      img.onload = async () => {
+        const tensor = tf.browser.fromPixels(img)
+          .resizeNearestNeighbor([224, 224])
+          .toFloat()
+          .expandDims();
+
+        const predictions = await model.predict(tensor).data();
+
+        const confidence = Math.max(...predictions);
+
+        if (confidence > 0.5) {
+          result.innerText = "🐾 Possibly a big cat print";
+        } else {
+          result.innerText = "❌ Likely not a big cat print";
+        }
+      };
+    }
+  </script>
+
+</body>
+</html> 
